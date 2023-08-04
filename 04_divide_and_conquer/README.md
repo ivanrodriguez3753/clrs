@@ -47,3 +47,29 @@ A[1..15] has result (8, 11, 43)
 A[1..16] has result (8, 11, 43)
 
  I ended up looking at a solution, didn't understand, then understood it. Essentially, you either use the position you just added in your new max subarray, or you don't, and if you don't, you just keep the old max subarray. Reading the hint, I thought you had to find the i that successfully uses the j + 1 block, but that i is being kept track of, not calculated (essentially i is left and j + is right). The other key is to reset sum if it's not helping you. That is, if it's negative, then go ahead and assign the current data (I find it helpful to think of it as resetting to 0 and adding the current data). This is because it being negative means you're better off resetting to 0, whether that new first number is positive or negative. If it's negative, the same thing will happen again. But you do have to keep an ongoing sum (and an ongoing left pointer that gets the current r value when sum resets).
+
+ 4.2 Strassen's algorithm for matrix multiplication
+
+ start with square_matrix_multiply(A, B), the usual brute force algorithm
+
+ as an example, we can take the one from the exercise:
+ [1 3  * [6 8
+  7 5]    4 2]
+The answer should be [18 14 
+                      62 66]
+
+alright, so the triple for nest makes it pretty obvious that the brute force algorithm is theta(n^3). 
+
+now, a divide and conquer algorithm. as usual, assume powers of 2 to keep things simple. The book passes in submatrices as arguments, but in order to avoid copies and partition in constant time, we represent submatrices as index ranges. square_matrix_multiply_recursive just partitions into submatrices and uses the equations on page 76 of the book, with the base case being a 1x1 matrix returning A_11 * B_11.  There are 8 recursive calls, and you take the result of two of those to add the number of entries in a 1/4 submatrix so each of those 4 matrix adds does n^2 / 4 adds. So the recurrence is:
+    T(n) = 8 * T(n / 2) + theta(n^2)
+
+Strassen's method improves this slightly. It's recurrence is:
+    T(n) = 7 * T(n / 2) + theta(n^2)
+
+I think the book explains it well when it says it aims to make the recursion tree a little
+less bushy. The explanation is pretty much you partition into 4 submatrices as in the vanilla divide and conquer algorithm, make 10 new submatrices given by the formulas on page 80. Then, make 7 new submatrices given by the matrix multiplications on page 80 (this can be done recursively). So at the cost of 7 recursive calls, you now have a way reconstruct the resultant submatrices with a constant number of matrix additions, where the matrix size is given by n/2xn/2 (this constitutes the theta(n^2)).
+Since Strassen's method is really just "calculate some intermediate results, call recursively to obtain even more intermediate results, then addd those intermediate results" without really teaching more about the programming side of it, I'll just implement the recursive matrix multiply and call it a day. 
+There was just a mathematical exploit where we could work with 7 submatrices instead of 8. That's why the solution to the recurrence is theta(n^(lg7)), where we should note this is log base 2 with an argument of 7 (master theorem generalizes this pattern with different cases for the stuff besides the a * T(n / b)).
+
+At first, this was crashing for sizes bigger than 256. After eliminating some unused stuff, the new limit was 512 (would crash on 1024). After looking some stuff up, you can use `ulimit -s <limit>` to change that stack size of the current shell and its children processes. So setting it to 32768 allowed me to get a run in with size 1024x1024.
+I could go further with the stack space (online said the macOS limit was 65k or something like that), or start using the heap, but I think I'm good and I don't want to modify the code to use malloc (although it'd be trivial).
